@@ -1,0 +1,53 @@
+<% content_for(:title) { "New Game" } %>
+
+<div class="text-center mb-20">
+  <h2 style="color: var(--green); font-size: 18px;" class="glow">Initialize New Company</h2>
+  <p style="color: var(--text-dim); font-size: 12px;">Choose your starting conditions wisely.</p>
+</div>
+
+<%= form_tag(games_path, method: :post, id: 'new-game-form') do %>
+  <div class="card">
+    <div class="card-header">▸ Company Name</div>
+    <div style="max-width: 400px;">
+      <input type="text" name="company_name" placeholder="e.g. DogeCoin Infrastructure Inc." autofocus>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">▸ Select Scenario</div>
+    <div class="grid grid-3">
+      <% Company::SCENARIOS.each do |key, data| %>
+        <label class="scenario-card" style="cursor: pointer;" id="scenario-<%= key %>" onclick="selectScenario('<%= key %>')">
+          <input type="radio" name="scenario" value="<%= key %>" style="display: none;" <%= key == 'startup' ? 'checked' : '' %>>
+          <div class="scenario-emoji"><%= data[:label].split(' ').first %></div>
+          <div class="scenario-name"><%= data[:label].split(' ', 2).last %></div>
+          <div class="scenario-desc"><%= data[:description] %></div>
+          <div style="margin-top: 12px; font-size: 11px; color: var(--text-dim);">
+            💰 $<%= (data[:budget] / 1000).to_i %>K
+            · 👥 <%= data[:headcount] %>
+            · 🔧 <%= data[:tech_debt].to_i %>% debt
+          </div>
+        </label>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="text-center mt-20">
+    <button type="submit" class="btn btn-lg">
+      🚀 LAUNCH COMPANY
+    </button>
+  </div>
+<% end %>
+
+<script>
+  // Highlight selected scenario
+  function selectScenario(key) {
+    document.querySelectorAll('.scenario-card').forEach(function(el) {
+      el.classList.remove('selected');
+    });
+    document.getElementById('scenario-' + key).classList.add('selected');
+    document.querySelector('input[value="' + key + '"]').checked = true;
+  }
+  // Set initial selection
+  selectScenario('startup');
+</script>

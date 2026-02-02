@@ -1,0 +1,66 @@
+<% content_for(:title) { "Home" } %>
+
+<div class="text-center" style="padding: 40px 0;">
+  <h2 style="color: var(--green); font-size: 20px; margin-bottom: 10px;" class="glow">
+    Welcome, VP of Engineering
+  </h2>
+  <p style="color: var(--text-dim); max-width: 600px; margin: 0 auto 30px;">
+    Build your startup. Ship features. Fight tech debt. Survive board meetings.
+    Try not to get paged at 3am. <span class="cursor-blink"></span>
+  </p>
+
+  <a href="<%= new_game_path %>" class="btn btn-lg" style="margin-right: 10px;">
+    ▶ NEW GAME
+  </a>
+  <a href="<%= leaderboard_games_path %>" class="btn btn-lg btn-amber">
+    🏆 LEADERBOARD
+  </a>
+</div>
+
+<% if @recent_games.any? %>
+  <div class="card mt-20">
+    <div class="card-header">▸ Continue Game</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Scenario</th>
+          <th>Sprint</th>
+          <th>Revenue</th>
+          <th>Uptime</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @recent_games.each do |game| %>
+          <tr>
+            <td style="color: var(--green);"><%= game.name %></td>
+            <td><%= Company::SCENARIOS[game.scenario][:label] %></td>
+            <td>#<%= game.turn %></td>
+            <td><%= game.format_revenue %></td>
+            <td class="<%= game.uptime < 99 ? 'danger' : '' %>" style="color: <%= game.uptime < 99 ? 'var(--red)' : 'var(--green)' %>;">
+              <%= game.uptime.round(2) %>%
+            </td>
+            <td>
+              <a href="<%= game_path(game) %>" class="btn" style="padding: 4px 12px; font-size: 12px;">
+                RESUME →
+              </a>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
+
+<div class="card mt-20">
+  <div class="card-header">▸ How to Play</div>
+  <div style="color: var(--text-dim); font-size: 12px; line-height: 1.8;">
+    <p><span style="color: var(--green);">$</span> You are the VP of Engineering at a startup.</p>
+    <p><span style="color: var(--green);">$</span> Each sprint (turn) you get action points to spend on decisions.</p>
+    <p><span style="color: var(--green);">$</span> Random events will test your infrastructure and team.</p>
+    <p><span style="color: var(--green);">$</span> Balance shipping features vs. reliability vs. team health.</p>
+    <p><span style="color: var(--amber);">$</span> Win condition: IPO at $10M+ ARR, 99.9%+ uptime, 50+ engineers.</p>
+    <p><span style="color: var(--red);">$</span> Lose condition: Bankrupt, 0% morale, or 3 sprints under 95% uptime.</p>
+  </div>
+</div>

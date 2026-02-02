@@ -1,0 +1,5 @@
+log/
+tmp/
+.secret_key_base
+db/*.sqlite3
+storage/

@@ -1,0 +1,275 @@
+<% content_for(:title) { "#{@company.name} — Sprint ##{@company.turn}" } %>
+
+<% if @company.game_over? %>
+  <!-- Game Over Screen -->
+  <div class="card">
+    <div class="game-over-overlay">
+      <% if @company.game_over_reason == 'ipo' %>
+        <div class="game-over-title game-over-win">🎉 IPO SUCCESSFUL!</div>
+        <div class="game-over-reason">
+          <%= @company.name %> went public after <%= @company.turn %> sprints!<br>
+          ARR: <%= @company.format_arr %> · Uptime: <%= @company.uptime.round(2) %>% · Team: <%= @company.headcount %>
+        </div>
+        <pre style="color: var(--green); font-size: 11px; margin-bottom: 20px;">
+    $$$$$$$\   $$$$$$\  $$\   $$\  $$$$$$\        $$$$$$$$\ $$$$$$\ $$\      $$\ $$$$$$$$\ 
+    $$  __$$\ $$  __$$\ $$$\  $$ |$$  __$$\       \__$$  __|\_$$  _|$$$\    $$$ |$$  _____|
+    $$ |  $$ |$$ /  $$ |$$$$\ $$ |$$ /  \__|         $$ |    $$ |  $$$$\  $$$$ |$$ |      
+    $$$$$$$\ |$$ |  $$ |$$ $$\$$ |$$ |$$$$\          $$ |    $$ |  $$\$$\$$ $$ |$$$$$\    
+    $$  __$$\ $$ |  $$ |$$ \$$$$ |$$ |\_$$ |         $$ |    $$ |  $$ \$$$  $$ |$$  __|   
+    $$ |  $$ |$$ |  $$ |$$ |\$$$ |$$ |  $$ |         $$ |    $$ |  $$ |\$  /$$ |$$ |      
+    $$$$$$$  | $$$$$$  |$$ | \$$ |\$$$$$$  |         $$ |  $$$$$$\ $$ | \_/ $$ |$$$$$$$$\ 
+    \_______/  \______/ \__|  \__| \______/          \__|  \______|\__|     \__|\________|
+        </pre>
+      <% else %>
+        <div class="game-over-title game-over-lose">💀 GAME OVER</div>
+        <div class="game-over-reason">
+          <% case @company.game_over_reason %>
+          <% when 'uptime' %>
+            Uptime below 95% for 3 consecutive sprints. The board lost confidence. Customers left. It's over.
+          <% when 'bankrupt' %>
+            The bank account hit $0. Can't pay engineers with equity when the equity is worthless. <%= @company.name %> is done.
+          <% when 'morale' %>
+            Team morale hit 0%. Mass exodus. Your Glassdoor rating is 1.2 stars. The last review says "run."
+          <% when 'no_team' %>
+            Everyone quit. You're the only one left. You stare at the empty Slack channels. The servers hum on, unattended.
+          <% end %>
+        </div>
+      <% end %>
+
+      <div class="game-over-score-label">FINAL SCORE</div>
+      <div class="game-over-score"><%= @company.score.to_s.reverse.scan(/.{1,3}/).join(',').reverse %></div>
+
+      <div class="mt-20">
+        <a href="<%= new_game_path %>" class="btn btn-lg" style="margin-right: 10px;">↻ TRY AGAIN</a>
+        <a href="<%= leaderboard_games_path %>" class="btn btn-lg btn-amber">🏆 LEADERBOARD</a>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<!-- Company Header -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+  <div>
+    <h2 style="color: var(--green); font-size: 18px; font-weight: 600;" class="glow"><%= @company.name %></h2>
+    <div style="color: var(--text-dim); font-size: 11px;">
+      <%= Company::SCENARIOS[@company.scenario][:label] %> · Score: <%= @company.score.to_s.reverse.scan(/.{1,3}/).join(',').reverse %>
+    </div>
+  </div>
+  <div class="sprint-counter">
+    SPRINT #<%= @company.turn %> <span style="color: var(--text-dim);">· Week <%= @company.turn * 2 - 1 %>-<%= @company.turn * 2 %></span>
+  </div>
+</div>
+
+<!-- Metrics Dashboard -->
+<div class="card">
+  <div class="card-header">▸ Dashboard</div>
+  <div class="grid grid-4">
+    <div class="metric">
+      <div class="metric-value <%= @company.budget < 100_000 ? 'danger' : @company.budget < 500_000 ? 'warning' : '' %>">
+        <%= @company.format_budget %>
+      </div>
+      <div class="metric-label">Budget</div>
+      <div class="progress-bar">
+        <% budget_pct = @company.scenario == 'enterprise' ? (@company.budget / 50_000_000.0 * 100) : @company.scenario == 'series_a' ? (@company.budget / 10_000_000.0 * 100) : (@company.budget / 2_000_000.0 * 100) %>
+        <div class="progress-fill <%= budget_pct < 20 ? 'red' : budget_pct < 50 ? 'amber' : 'green' %>" style="width: <%= [budget_pct.clamp(0, 100), 100].min %>%"></div>
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-value <%= @company.uptime < 95 ? 'danger' : @company.uptime < 99 ? 'warning' : '' %>">
+        <%= @company.uptime.round(2) %>%
+      </div>
+      <div class="metric-label">Uptime (SLO)</div>
+      <div class="progress-bar">
+        <div class="progress-fill <%= @company.uptime < 95 ? 'red' : @company.uptime < 99 ? 'amber' : 'green' %>" style="width: <%= @company.uptime %>%"></div>
+      </div>
+      <% if @company.low_uptime_streak > 0 %>
+        <div style="color: var(--red); font-size: 10px; margin-top: 4px;">
+          ⚠ <%= @company.low_uptime_streak %>/3 low uptime sprints
+        </div>
+      <% end %>
+    </div>
+
+    <div class="metric">
+      <div class="metric-value"><%= @company.format_revenue %></div>
+      <div class="metric-label">Revenue</div>
+      <div style="color: var(--text-dim); font-size: 10px; margin-top: 4px;">
+        ARR: <%= @company.format_arr %> <% if @company.arr > 10_000_000 %><span style="color: var(--green);">✓ IPO</span><% end %>
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-value"><%= @company.customers.to_s.reverse.scan(/.{1,3}/).join(',').reverse %></div>
+      <div class="metric-label">Customers</div>
+    </div>
+  </div>
+
+  <div class="grid grid-4" style="margin-top: 15px;">
+    <div class="metric">
+      <div class="metric-value"><%= @company.headcount %></div>
+      <div class="metric-label">Engineers <% if @company.headcount > 50 %><span style="color: var(--green);">✓ IPO</span><% end %></div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-value <%= @company.tech_debt > 60 ? 'danger' : @company.tech_debt > 30 ? 'warning' : '' %>">
+        <%= @company.tech_debt.round(1) %>%
+      </div>
+      <div class="metric-label">Tech Debt</div>
+      <div class="progress-bar">
+        <div class="progress-fill <%= @company.tech_debt > 60 ? 'red' : @company.tech_debt > 30 ? 'amber' : 'green' %>" style="width: <%= @company.tech_debt %>%"></div>
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-value <%= @company.morale < 30 ? 'danger' : @company.morale < 60 ? 'warning' : '' %>">
+        <%= @company.morale.round(1) %>%
+      </div>
+      <div class="metric-label">Morale</div>
+      <div class="progress-bar">
+        <div class="progress-fill <%= @company.morale < 30 ? 'red' : @company.morale < 60 ? 'amber' : 'green' %>" style="width: <%= @company.morale %>%"></div>
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-value" style="color: var(--cyan);"><%= @company.observability_level %></div>
+      <div class="metric-label">Observability</div>
+      <div style="color: var(--text-dim); font-size: 10px; margin-top: 4px;">
+        <% if @company.slo_defined %>🎯 SLOs defined<% end %>
+        <% if @company.chaos_engineering %> 🛡️ Chaos<% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% unless @company.game_over? %>
+  <!-- Action Points -->
+  <div class="card">
+    <div class="card-header">
+      ▸ Actions — Sprint #<%= @company.turn %>
+      <span style="float: right; color: var(--green);"><%= @company.action_points %> AP remaining</span>
+    </div>
+
+    <div class="ap-dots">
+      <% max_ap = 3 + (@company.headcount >= 50 ? 2 : @company.headcount >= 20 ? 1 : 0) %>
+      <% max_ap = [max_ap, 5].min %>
+      <% max_ap.times do |i| %>
+        <div class="ap-dot <%= i < @company.action_points ? 'filled' : 'empty' %>"></div>
+      <% end %>
+    </div>
+
+    <% if @company.action_points > 0 %>
+      <div class="grid grid-2" style="margin-top: 15px;">
+        <% @actions.each do |key, data| %>
+          <%= form_tag(action_game_path(@company), method: :post) do %>
+            <%= hidden_field_tag :action_type, key %>
+            <button type="submit" class="action-card" style="width: 100%; text-align: left; font-family: inherit; background: var(--bg-card); color: var(--text);">
+              <div class="action-emoji"><%= data[:emoji] %></div>
+              <div class="action-name"><%= data[:label] %></div>
+              <div class="action-desc"><%= data[:description] %></div>
+            </button>
+          <% end %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-center" style="padding: 20px; color: var(--text-dim);">
+        No action points remaining. End the sprint to continue.
+      </div>
+    <% end %>
+
+    <div class="text-center mt-20">
+      <%= form_tag(end_turn_game_path(@company), method: :post) do %>
+        <button type="submit" class="btn btn-amber btn-lg">
+          ⏭ END SPRINT #<%= @company.turn %> →
+        </button>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<!-- Event Log -->
+<% if @last_turn %>
+  <div class="card">
+    <div class="card-header">▸ Sprint #<%= @last_turn.turn_number %> Events</div>
+    <% @last_turn.parsed_events.each do |event| %>
+      <div class="log-entry <%= event['type'] || 'info' %>">
+        <span class="log-icon"><%= event['icon'] || '📋' %></span>
+        <%= event['message'] %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<!-- Turn History -->
+<% if @turns.any? %>
+  <div class="card">
+    <div class="card-header">▸ Sprint History</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Sprint</th>
+          <th>Revenue</th>
+          <th>Uptime</th>
+          <th>Team</th>
+          <th>Debt</th>
+          <th>Morale</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @turns.each do |turn| %>
+          <% metrics = turn.parsed_metrics %>
+          <tr>
+            <td style="color: var(--amber);">#<%= turn.turn_number %></td>
+            <td>$<%= ((metrics['revenue'] || 0) / 1000.0).round(1) %>K</td>
+            <td style="color: <%= (metrics['uptime'] || 99) < 99 ? 'var(--red)' : 'var(--green)' %>;">
+              <%= (metrics['uptime'] || 0).round(2) %>%
+            </td>
+            <td><%= metrics['headcount'] || 0 %></td>
+            <td style="color: <%= (metrics['tech_debt'] || 0) > 50 ? 'var(--red)' : 'var(--text)' %>;">
+              <%= (metrics['tech_debt'] || 0).round(1) %>%
+            </td>
+            <td><%= (metrics['morale'] || 0).round(1) %>%</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
+
+<!-- IPO Progress -->
+<% unless @company.game_over? %>
+  <div class="card">
+    <div class="card-header">▸ IPO Progress</div>
+    <div style="font-size: 12px;">
+      <div style="margin-bottom: 8px;">
+        <span style="color: var(--text-dim);">ARR > $10M:</span>
+        <span style="color: <%= @company.arr > 10_000_000 ? 'var(--green)' : 'var(--text-dim)' %>;">
+          <%= @company.format_arr %> / $10M
+          <%= @company.arr > 10_000_000 ? '✅' : '' %>
+        </span>
+        <div class="progress-bar">
+          <div class="progress-fill green" style="width: <%= [(@company.arr / 10_000_000.0 * 100), 100].min %>%"></div>
+        </div>
+      </div>
+      <div style="margin-bottom: 8px;">
+        <span style="color: var(--text-dim);">Uptime > 99.9%:</span>
+        <span style="color: <%= @company.uptime > 99.9 ? 'var(--green)' : 'var(--text-dim)' %>;">
+          <%= @company.uptime.round(2) %>% / 99.9%
+          <%= @company.uptime > 99.9 ? '✅' : '' %>
+        </span>
+        <div class="progress-bar">
+          <div class="progress-fill green" style="width: <%= [(@company.uptime / 99.9 * 100), 100].min %>%"></div>
+        </div>
+      </div>
+      <div>
+        <span style="color: var(--text-dim);">Team > 50:</span>
+        <span style="color: <%= @company.headcount > 50 ? 'var(--green)' : 'var(--text-dim)' %>;">
+          <%= @company.headcount %> / 50
+          <%= @company.headcount > 50 ? '✅' : '' %>
+        </span>
+        <div class="progress-bar">
+          <div class="progress-fill green" style="width: <%= [(@company.headcount / 50.0 * 100), 100].min %>%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
